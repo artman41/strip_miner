@@ -1,29 +1,35 @@
-require("strip_miner.objects.turtle")
-require("strip_miner.objects.enum")
-require("strip_miner.objects.movement")
-require("strip_miner.objects.inventory")
+require("apis.turtle")
+require("objects.movement")
+require("objects.inventory")
+require("utils.enum")
+require("utils.opts")
+require("utils.logger")
 
 Miner = (function()
+
+    local MinerOpts = OptsBuilder({
+        radius = 1, -- default to 3x3
+        refuelThreshold = 0.1 -- 10%
+    })();
     
     local miner = {
         movement = Movement:new(),
         inventory = Inventory:new(),
         radius = 0,
-        refuelThreshold = 0.1, -- 10%
+        refuelThreshold = 0, -- 10%
         timeSinceLastRefuel = 0
     }
 
-    function miner:new(radius, refuelThreshold)
-        if tonumber(radius) == nil then
-            error("Radius required")
-        end
-        local obj = {
-        };
-        setmetatable(obj, self)
+    function miner:new(params)
+        local obj = {};
+        setmetatable(obj, self);
         self.__index = self;
 
-        obj.radius = tonumber(radius)
-        obj.refuelThreshold = refuelThreshold or miner.refuelThreshold
+        local default_opts = MinerOpts:new({})
+        local opts = MinerOpts:new(params)
+
+        obj.radius = tonumber(opts.radius) or default_opts.radius; 
+        obj.refuelThreshold = tonumber(opts.refuelThreshold) or default_opts.refuelThreshold;
         return obj;
     end
 
@@ -67,42 +73,46 @@ Miner = (function()
             return ret{success = true};
         end
         function miner:wait_for_fuel()
-            print("Waiting for fuel...")
+            Logger.DEFAULT:info("Waiting for fuel...")
             local fuel_slot = self.inventory:find_fuel();
             while fuel_slot == nil do
-                print("Press any key once fuel has been inserted...")
+                Logger.DEFAULT:info("Press any key once fuel has been inserted...")
                 os.pullEvent("key")
 
                 fuel_slot = self.inventory:find_fuel();
+            end
+        end
+        function miner:refuel_check()
+            if not self:try_refuel().success then
+                Logger.DEFAULT:debug("Failed to refuel.")
+                if turtle.getFuelLevel() == 0 then
+                    Logger.DEFAULT:warn("Fuel Level is 0! Fuel Needed!")
+                    local retry = true;
+                    while retry do
+                        self:wait_for_fuel();
+                        retry = not self:try_refuel().success;
+                    end
+                end
             end
         end
     end)();
 
     -- Setup
     (function()
-        function miner:should_setup()
-            return false;
-        end
-
         function miner:setup()
-            print("Setting up...")
+            Logger.DEFAULT:info("Setting up...")
+            Logger.DEFAULT:info("Mining Radius: %d", self.radius)
+            Logger.DEFAULT:info("Refuel Threshold: %d%%", self.refuelThreshold * 100)
+            Logger.DEFAULT:notice("The miner assumes that it is placed at the Center-Bottom of the wall.")
+            print("Press any key to continue...")
+            os.pullEvent("key")
         end
     end)();
 
     -- Mining
     (function()
         function miner:mine_block()
-            if not self:try_refuel().success then
-                if turtle.getFuelLevel() == 0 then
-                    local retry = true;
-                    while retry do
-                        self:wait_for_fuel();
-                        retry = not self:try_refuel().success;
-                    end
-                else
-                    print("Couldn't refuel.")
-                end
-            end
+            miner:refuel_check()
             turtle.dig()
             return false
         end

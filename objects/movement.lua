@@ -1,9 +1,10 @@
-require("strip_miner.objects.turtle")
-require("strip_miner.objects.enum");
-require("strip_miner.objects.position");
+require("apis.turtle")
+require("utils.enum");
+require("objects.position");
+require("utils.logger")
 
 Movement = (function()
-    local direction = Enum:new(
+    Direction = Enum:new(
         "FORWARD",
         "RIGHT",
         "BACKWARD",
@@ -13,7 +14,7 @@ Movement = (function()
     local movement = {
         pos_origin  = Position:new(0, 0, 0),
         pos_current = Position:new(0, 0, 0),
-        direction = direction.FORWARD
+        direction = Direction.FORWARD
     }
 
     function movement:new()
@@ -26,11 +27,11 @@ Movement = (function()
 
     function movement:turnLeft()
         if turtle.turnLeft() then
-            local newDirection = self.direction - 1;
-            if newDirection < direction.min() then
-                newDirection = newDirection + direction.count();
+            local newDirection = self.direction.value() - 1;
+            if newDirection < Direction.min() then
+                newDirection = newDirection + Direction.count();
             end
-            self.direction = newDirection;
+            self.direction = Direction:from(newDirection) or error(string.format("Bad Direction: %d", newDirection));
             return true;
         end
         return false;
@@ -38,11 +39,11 @@ Movement = (function()
 
     function movement:turnRight()
         if turtle.turnRight() then
-            local newDirection = self.direction + 1;
-            if newDirection > direction.max() then
-                newDirection = newDirection - direction.count();
+            local newDirection = self.direction.value() + 1;
+            if newDirection > Direction.max() then
+                newDirection = newDirection - Direction.count();
             end
-            self.direction = newDirection;
+            self.direction = Direction:from(newDirection) or error(string.format("Bad Direction: %d", newDirection));
             return true;
         end
         return false;
@@ -50,13 +51,13 @@ Movement = (function()
 
     function movement:forward()
         if turtle.forward() then
-            if self.direction == direction.FORWARD then
+            if self.direction == Direction.FORWARD then
                 self.pos_current:setZ(self.pos_current:getZ() + 1);
-            elseif self.direction == direction.BACKWARD then
+            elseif self.direction == Direction.BACKWARD then
                 self.pos_current:setZ(self.pos_current:getZ() - 1);
-            elseif self.direction == direction.RIGHT then
+            elseif self.direction == Direction.RIGHT then
                 self.pos_current:setX(self.pos_current:getX() + 1);
-            elseif self.direction == direction.LEFT then
+            elseif self.direction == Direction.LEFT then
                 self.pos_current:setX(self.pos_current:getX() - 1);
             end;
             return true;
@@ -66,13 +67,13 @@ Movement = (function()
 
     function movement:back()
         if turtle.back() then
-            if self.direction == direction.FORWARD then
+            if self.direction == Direction.FORWARD then
                 self.pos_current:setZ(self.pos_current:getZ() - 1);
-            elseif self.direction == direction.BACKWARD then
+            elseif self.direction == Direction.BACKWARD then
                 self.pos_current:setZ(self.pos_current:getZ() + 1);
-            elseif self.direction == direction.RIGHT then
+            elseif self.direction == Direction.RIGHT then
                 self.pos_current:setX(self.pos_current:getX() - 1);
-            elseif self.direction == direction.LEFT then
+            elseif self.direction == Direction.LEFT then
                 self.pos_current:setX(self.pos_current:getX() + 1);
             end
             return true;
@@ -196,6 +197,8 @@ Movement = (function()
             return;
         end
     end
+
+    movement.Direction = Direction;
 
     return movement;
 end)()

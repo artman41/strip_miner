@@ -16,16 +16,16 @@
 
 --]]
 
-require("strip_miner.objects.miner")
+require("utils.require")
+require("objects.miner")
+require("utils.logger")
 
 function main(...)
-    local miner = Miner.new(2)
+    local miner = Miner:new(2)
 
-    if miner:should_setup() then
-        miner:setup()
-    end
+    miner:setup()
 
-    print(string.format("o: %s, c: %s", miner.movement.pos_origin:tostring(), miner.movement.pos_current:tostring()))
+    Logger.DEFAULT:debug("o: %s, c: %s", miner.movement.pos_origin:tostring(), miner.movement.pos_current:tostring())
     for _, value in ipairs(arg) do
         if value == "f" then
             miner.movement:forward();
@@ -41,9 +41,9 @@ function main(...)
             miner.movement:down();
         end
     end
-    print(string.format("o: %s, c: %s", miner.movement.pos_origin:tostring(), miner.movement.pos_current:tostring()))
+    Logger.DEFAULT:debug("o: %s, c: %s", miner.movement.pos_origin:tostring(), miner.movement.pos_current:tostring())
     miner.movement:return_to_origin();
-    print(string.format("o: %s, c: %s", miner.movement.pos_origin:tostring(), miner.movement.pos_current:tostring()))
+    Logger.DEFAULT:debug("o: %s, c: %s", miner.movement.pos_origin:tostring(), miner.movement.pos_current:tostring())
 end
 
 main(...)

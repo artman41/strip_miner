@@ -1,3 +1,5 @@
+require("utils.logger")
+
 Position = (function()
     local position = {
     }
@@ -64,21 +66,21 @@ Position = (function()
 
         status, ret = pcall(function() return pos_:getX() end)
         if not status then
-            print("Failed to get X from " .. tostring(pos_) .. " with error '" .. tostring(ret) .. "'")
+            Logger.DEFAULT:error("Failed to get X from %s with error '%s'", tostring(pos_), tostring(ret))
             return nil;
         end
         local x = ret;
 
         status, ret = pcall(function() return pos_:getY() end)
         if not status then
-            print("Failed to get Y from " .. tostring(pos_) .. " with error '" .. tostring(ret) .. "'")
+            Logger.DEFAULT:error("Failed to get Y from %s with error '%s'", tostring(pos_), tostring(ret))
             return nil;
         end
         local y = ret;
 
         status, ret = pcall(function() return pos_:getZ() end)
         if not status then
-            print("Failed to get Z from " .. tostring(pos_) .. " with error '" .. tostring(ret) .. "'")
+            Logger.DEFAULT:error("Failed to get Z from %s with error '%s'", tostring(pos_), tostring(ret))
             return nil;
         end
         local z = ret;

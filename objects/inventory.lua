@@ -1,4 +1,5 @@
-require("strip_miner.objects.turtle")
+require("apis.turtle")
+require("utils.logger")
 
 Inventory = (function()
     
@@ -13,7 +14,7 @@ Inventory = (function()
         setmetatable(obj, self)
         self.__index = self;
 
-        self:update();
+        obj:update();
 
         return obj;
     end
