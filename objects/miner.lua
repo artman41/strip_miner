@@ -139,12 +139,20 @@ Miner = (function()
             return false
         end
         function miner:mine_sides()
+            Logger.DEFAULT.debug("Facing Forwards...")
+            if not self.movement:rotate_to(Movement.Direction.FORWARD) then
+                Logger.DEFAULT:error("Failed to face forward!");
+                return false;
+            end
+            Logger.DEFAULT.debug("Dropping Anchor...")
             local anchor = self.movement:drop_anchor()
-            if not self.movement:turnLeft() then
-                Logger.DEFAULT:error("Failed to turn left!");
+            Logger.DEFAULT.debug("Facing Left...")
+            if not self.movement:rotate_to(Movement.Direction.LEFT) then
+                Logger.DEFAULT:error("Failed to face left!");
                 return false;
             end
             local is_ok = true;
+            Logger.DEFAULT.debug("Mining Left Strip...")
             for _=1,self.radius do
                 if not self:mine_block()  then
                     Logger.DEFAULT:error("Failed to mine block!");
@@ -157,16 +165,20 @@ Miner = (function()
                     break;
                 end
             end
+            Logger.DEFAULT.debug("Returning to Anchor...")
             self.movement:return_to_anchor(anchor)
             if not is_ok then
                 return false;
             end
+            Logger.DEFAULT.debug("Dropping Anchor...")
             local anchor = self.movement:drop_anchor()
-            if not self.movement:turnRight() then
-                Logger.DEFAULT:error("Failed to turn right!");
+            Logger.DEFAULT.debug("Facing Right...")
+            if not self.movement:rotate_to(Movement.Direction.RIGHT) then
+                Logger.DEFAULT:error("Failed to face right!");
                 return false;
             end
             local is_ok = true;
+            Logger.DEFAULT.debug("Mining Right Strip...")
             for _=1,self.radius do
                 if not self:mine_block() then
                     Logger.DEFAULT:error("Failed to mine block!");
@@ -179,6 +191,7 @@ Miner = (function()
                     break
                 end
             end
+            Logger.DEFAULT.debug("Returning to Anchor...")
             self.movement:return_to_anchor(anchor)
             if not is_ok then
                 return false;
@@ -200,7 +213,7 @@ Miner = (function()
             end
             local anchor = self.movement:drop_anchor()
             local is_ok = true;
-            for _=1,self.radius do
+            for _=1,self.radius+1 do
                 if not self:mine_block("u")  then
                     Logger.DEFAULT:error("Failed to mine block up!");
                     is_ok = false;

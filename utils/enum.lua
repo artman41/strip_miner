@@ -11,7 +11,7 @@ Enum = (function()
         self.__index = self;
 
         local min = 0;
-        local max = min;
+        local max = min-1;
         local count = 0;
 
         self.min = function() return min end
@@ -24,6 +24,7 @@ Enum = (function()
         end
 
         for i, v in ipairs(arg) do
+            max = max + 1;
             local value = max;
             local entry = {};
             if base_entry ~= nil then
@@ -34,7 +35,6 @@ Enum = (function()
             entry.value = function() return value end;
             self[v] = entry;
             self.value_to_enum[value] = entry;
-            max = max + 1;
             count = i;
         end
 

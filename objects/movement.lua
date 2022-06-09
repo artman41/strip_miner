@@ -29,10 +29,16 @@ Movement = (function()
     function movement:turnLeft()
         if turtle.turnLeft() then
             local newDirection = self.direction.value() - 1;
+            Logger.DEFAULT:debug("New Direction is %d", newDirection);
             if newDirection < Direction.min() then
                 newDirection = newDirection + Direction.count();
             end
-            self.direction = Direction:from(newDirection) or error(string.format("Bad Direction: %d", newDirection));
+            Logger.DEFAULT:debug("New Direction is fixed to %d", newDirection);
+            if Direction:from(newDirection) == nil then
+                error(string.format("Bad Direction: %d", newDirection));
+                return false;
+            end
+            self.direction = Direction:from(newDirection);
             return true;
         end
         Logger.DEFAULT:warn("Failed to turn left!");
@@ -42,10 +48,16 @@ Movement = (function()
     function movement:turnRight()
         if turtle.turnRight() then
             local newDirection = self.direction.value() + 1;
+            Logger.DEFAULT:debug("New Direction is %s", newDirection);
             if newDirection > Direction.max() then
                 newDirection = newDirection - Direction.count();
             end
-            self.direction = Direction:from(newDirection) or error(string.format("Bad Direction: %d", newDirection));
+            Logger.DEFAULT:debug("New Direction is fixed to %s", newDirection);
+            if Direction:from(newDirection) == nil then
+                error(string.format("Bad Direction: %d", newDirection));
+                return false;
+            end
+            self.direction = Direction:from(newDirection);
             return true;
         end
         Logger.DEFAULT:warn("Failed to turn right!");
@@ -85,34 +97,30 @@ Movement = (function()
     end
 
     function movement:left()
-        if self:turnLeft() then
+        local anchor = self:drop_anchor();
+        if self:rotate_to(Direction.LEFT) then
             if self:forward() then
-                if self:turnRight() then
+                if self:rotate_to(Direction.FORWARD) then
+                    self:remove_anchor(anchor);
                     return true;
-                else
-                    self:back();
-                    self:turnRight();
                 end
-            else
-                self:turnRight();
             end
         end
+        self:return_to_anchor(anchor);
         return false;
     end
 
     function movement:right()
-        if self:turnRight() then
+        local anchor = self:drop_anchor();
+        if self:rotate_to(Direction.RIGHT) then
             if self:forward() then
-                if self:turnLeft() then
+                if self:rotate_to(Direction.FORWARD) then
+                    self:remove_anchor(anchor);
                     return true;
-                else
-                    self:back();
-                    self:turnLeft();
                 end
-            else
-                self:turnLeft();
             end
         end
+        self:return_to_anchor(anchor);
         return false;
     end
 
@@ -150,17 +158,7 @@ Movement = (function()
 
         local attempts = tonumber(attempts) or 3;
 
-        local diff = (Direction.FORWARD.value() - self.direction.value()) * -1
-
-        if diff >=3 then
-            for _=3,diff do
-                self:turnRight()
-            end
-        else
-            for _=1,diff do
-                self:turnLeft()
-            end
-        end
+        self:rotate_to(Direction.FORWARD);
 
         while attempts > 0 do
 
@@ -225,17 +223,104 @@ Movement = (function()
         end
     end
 
+    function movement:rotate_to(direction)
+        Logger.DEFAULT:debug("Rotating from facing %s to facing %s", self.direction:name(), direction:name())
+
+        local function turnLeft(i)
+            for _=1,i do
+                if not self:turnLeft() then
+                    return false;
+                end
+            end
+            return true;
+        end
+
+        local function turnRight(i)
+            for _=1,i do
+                if not self:turnRight() then
+                    return false;
+                end
+            end
+            return true;
+        end
+
+        if self.direction == Direction.FORWARD then
+            if direction == Direction.LEFT then
+                if not turnLeft(1) then
+                    return false;
+                end
+            elseif direction == Direction.RIGHT then
+                if not turnRight(1) then
+                    return false;
+                end
+            elseif direction == Direction.BACKWARD then
+                if not turnRight(2) then
+                    return false;
+                end
+            end
+        elseif self.direction == Direction.RIGHT then
+            if direction == Direction.FORWARD then
+                if not turnLeft(1) then
+                    return false;
+                end
+            elseif direction == Direction.BACKWARD then
+                if not turnRight(1) then
+                    return false;
+                end
+            elseif direction == Direction.LEFT then
+                if not turnRight(2) then
+                    return false;
+                end
+            end
+        elseif self.direction == Direction.BACKWARD then
+            if direction == Direction.RIGHT then
+                if not turnLeft(1) then
+                    return false;
+                end
+            elseif direction == Direction.LEFT then
+                if not turnRight(1) then
+                    return false;
+                end
+            elseif direction == Direction.FORWARD then
+                if not turnRight(2) then
+                    return false;
+                end
+            end
+        elseif self.direction == Direction.LEFT then
+            if direction == Direction.BACKWARD then
+                if not turnLeft(1) then
+                    return false;
+                end
+            elseif direction == Direction.FORWARD then
+                if not turnRight(1) then
+                    return false;
+                end
+            elseif direction == Direction.RIGHT then
+                if not turnRight(2) then
+                    return false;
+                end
+            end
+        end
+
+        return true;
+    end
+
     function movement:drop_anchor()
         local index=#self.anchors+1;
-        self.anchors[index] = self.pos_current:clone();
+        self.anchors[index] = {pos = self.pos_current:clone(), direction = Direction:from(self.direction:value())};
         return index;
     end
 
-    function movement:return_to_anchor(index, attempts)
-        local pos_anchor = self.anchors[index];
-        Logger.DEFAULT:debug("(Returning to Anchor) Current Pos: %s, anchor pos: %s", self.pos_current:tostring(), pos_anchor:tostring())
-        self:return_to(pos_anchor, attempts or 3);
+    function movement:remove_anchor(index)
         self.anchors[index] = nil;
+    end
+
+    function movement:return_to_anchor(index, attempts)
+        local anchor = self.anchors[index];
+        Logger.DEFAULT:debug("(Returning to Anchor) Current Pos: %s, anchor pos: %s", self.pos_current:tostring(), anchor.pos:tostring())
+        self:return_to(anchor.pos, attempts or 3);
+        self:rotate_to(anchor.direction);
+        self:remove_anchor(index);
     end
 
     movement.Direction = Direction;
