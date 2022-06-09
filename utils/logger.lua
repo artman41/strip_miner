@@ -33,7 +33,7 @@ local LogLevel = Enum:new(
 
 local LoggerOpts = OptsBuilder({
     loglevel = LogLevel.min(),
-    file = nil
+    file = ""
 })();
 
 Logger = (function()
@@ -50,13 +50,13 @@ Logger = (function()
 
         local opts = LoggerOpts:new(params)
 
-        obj:set_loglevel(opts.loglevel)
-        if opts.file ~= nil then
-            local file, str = io.open(opts.file, "a+")
+        self:set_loglevel(opts.loglevel)
+        if opts.file ~= "" then
+            local file, err = io.open(opts.file, "w")
             if file == nil then
-                obj:error("Failed to open file %s with error %s", opts.file, str)
+                self:error("Failed to open file %s with error %s", opts.file, err)
             else
-                obj.log_file = file;
+                self.log_file = file;
             end
         end
 
@@ -115,9 +115,12 @@ Logger = (function()
             return;
         end
 
-        local str = string.format("[" .. string.upper(loglevel.name()) .. "] " .. fmt, ...);
+        local debug_info = debug.getinfo(3);
+        local prefix = string.format("[%s] %s:%d", string.upper(loglevel.name()), debug_info.short_src, debug_info.currentline)
+        local str = string.format("%s " .. fmt, prefix, ...);
         if self.log_file ~= nil then
-            self.log_file:write(str);
+            self.log_file:write(str .. "\n");
+            self.log_file:flush();
         end
 
         local colour = term.getTextColour()

@@ -24,6 +24,10 @@ Position = (function()
         return obj;
     end
 
+    function position:clone()
+        return position:new(self:getX(), self:getY(), self:getZ())
+    end
+
     function position:tostring()
         return "(" .. tostring(private[self].X) .. ", " .. tostring(private[self].Y) .. ", " .. tostring(private[self].Z) .. ")";
     end

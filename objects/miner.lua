@@ -58,19 +58,25 @@ Miner = (function()
             -- If it's been 15 or less seconds since the last refuel,
             --  just skip the attempt - there's no way the fuel will
             --  have ran out since then.
-            if self.unix_timestamp() - self.lastRefuelTime <= 15 then
-                return ret{success = true};
+            if self.unix_timestamp() - self.timeSinceLastRefuel <= 15 then
+                ret.success = true;
+                return ret;
             end
             if miner:should_refuel() then
                 local fuelSlot = miner.inventory:find_fuel();
                 if fuelSlot == nil then
-                    return ret{success = false};
+                    ret.success = false;
+                    return ret;
                 end
                 turtle.select(fuelSlot);
                 turtle.refuel();
-                return ret{success = true, refueled = true};
+                self.timeSinceLastRefuel = self.unix_timestamp();
+                ret.success = true;
+                ret.refueled = true;
+                return ret;
             end
-            return ret{success = true};
+            ret.success = true;
+            return ret;
         end
         function miner:wait_for_fuel()
             Logger.DEFAULT:info("Waiting for fuel...")
@@ -111,13 +117,111 @@ Miner = (function()
 
     -- Mining
     (function()
-        function miner:mine_block()
+
+        function miner:mine_block(direction)
             miner:refuel_check()
-            turtle.dig()
+            if direction == nil or direction == "f" then
+                if not turtle.detect() then
+                    return true;
+                end
+                return turtle.dig()
+            elseif direction == "u" then
+                if not turtle.detectUp() then
+                    return true;
+                end
+                return turtle.digUp()
+            elseif direction == "d" then
+                if not turtle.detectDown() then
+                    return true;
+                end
+                return turtle.digDown()
+            end
             return false
         end
+        function miner:mine_sides()
+            local anchor = self.movement:drop_anchor()
+            if not self.movement:turnLeft() then
+                Logger.DEFAULT:error("Failed to turn left!");
+                return false;
+            end
+            local is_ok = true;
+            for _=1,self.radius do
+                if not self:mine_block()  then
+                    Logger.DEFAULT:error("Failed to mine block!");
+                    is_ok = false;
+                    break;
+                end
+                if not self.movement:forward()  then
+                    Logger.DEFAULT:error("Failed to move forward!");
+                    is_ok = false
+                    break;
+                end
+            end
+            self.movement:return_to_anchor(anchor)
+            if not is_ok then
+                return false;
+            end
+            local anchor = self.movement:drop_anchor()
+            if not self.movement:turnRight() then
+                Logger.DEFAULT:error("Failed to turn right!");
+                return false;
+            end
+            local is_ok = true;
+            for _=1,self.radius do
+                if not self:mine_block() then
+                    Logger.DEFAULT:error("Failed to mine block!");
+                    is_ok = false;
+                    break;
+                end
+                if not self.movement:forward() then
+                    Logger.DEFAULT:error("Failed to move forward!");
+                    is_ok = false;
+                    break
+                end
+            end
+            self.movement:return_to_anchor(anchor)
+            if not is_ok then
+                return false;
+            end
+            return true;
+        end
         function miner:mine_wall()
-            return false
+            if not self:mine_block() then
+                Logger.DEFAULT:error("Failed to mine block!");
+                return false;
+            end
+            if not self.movement:forward() then
+                Logger.DEFAULT:error("Failed to move forwards!");
+                return false;
+            end
+            if not self:mine_sides() then
+                Logger.DEFAULT:error("Failed to mine sides!");
+                return false;
+            end
+            local anchor = self.movement:drop_anchor()
+            local is_ok = true;
+            for _=1,self.radius do
+                if not self:mine_block("u")  then
+                    Logger.DEFAULT:error("Failed to mine block up!");
+                    is_ok = false;
+                    break;
+                end
+                if not self.movement:up()  then
+                    Logger.DEFAULT:error("Failed to move up!");
+                    is_ok = false;
+                    break;
+                end
+                if not self:mine_sides()  then
+                    Logger.DEFAULT:error("Failed to mine sides!");
+                    is_ok = false;
+                    break;
+                end
+            end
+            self.movement:return_to_anchor(anchor)
+            if not is_ok then
+                return false;
+            end
+            return true
         end
     end)();
 

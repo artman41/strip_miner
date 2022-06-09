@@ -12,6 +12,7 @@ Movement = (function()
     );
 
     local movement = {
+        anchors = {},
         pos_origin  = Position:new(0, 0, 0),
         pos_current = Position:new(0, 0, 0),
         direction = Direction.FORWARD
@@ -34,6 +35,7 @@ Movement = (function()
             self.direction = Direction:from(newDirection) or error(string.format("Bad Direction: %d", newDirection));
             return true;
         end
+        Logger.DEFAULT:warn("Failed to turn left!");
         return false;
     end
 
@@ -46,6 +48,7 @@ Movement = (function()
             self.direction = Direction:from(newDirection) or error(string.format("Bad Direction: %d", newDirection));
             return true;
         end
+        Logger.DEFAULT:warn("Failed to turn right!");
         return false;
     end
 
@@ -128,23 +131,42 @@ Movement = (function()
         end
         return false;
     end
-
+    
     function movement:return_to_origin(attempts)
-        local diff = self.pos_current:diff(self.pos_origin);
+        self:return_to(self.pos_origin, attempts)
+    end
+
+    function movement:return_to(pos, attempts)
+        local diff = self.pos_current:diff(pos);
         if diff == nil then
-            error("Failed to diff pos_current '" .. self.pos_current:tostring() .. "' against pos_origin '" .. self.pos_origin:tostring() .."'")
+            error(string.format("Failed to diff pos_current '%s' against pos_origin '%s'", self.pos_current:tostring(), self.pos_origin:tostring()))
             return;
         end
         local travel_x = diff:getX();
         local travel_y = diff:getY();
         local travel_z = diff:getZ();
 
+        Logger.DEFAULT:debug("to travel, x=%d y=%d z=%d", travel_x, travel_y, travel_z);
+
         local attempts = tonumber(attempts) or 3;
+
+        local diff = (Direction.FORWARD.value() - self.direction.value()) * -1
+
+        if diff >=3 then
+            for _=3,diff do
+                self:turnRight()
+            end
+        else
+            for _=1,diff do
+                self:turnLeft()
+            end
+        end
 
         while attempts > 0 do
 
             while travel_x < 0 do
                 if not self:left() then
+                    Logger.DEFAULT:debug("Couldn't move left, will try again next attempt.")
                     break
                 end
                 travel_x = travel_x + 1
@@ -152,6 +174,7 @@ Movement = (function()
             
             while travel_x > 0 do
                 if not self:right() then
+                    Logger.DEFAULT:debug("Couldn't move right, will try again next attempt.")
                     break
                 end
                 travel_x = travel_x - 1
@@ -159,6 +182,7 @@ Movement = (function()
 
             while travel_y < 0 do
                 if not self:down() then
+                    Logger.DEFAULT:debug("Couldn't move down, will try again next attempt.")
                     break
                 end
                 travel_y = travel_y + 1
@@ -166,6 +190,7 @@ Movement = (function()
             
             while travel_y > 0 do
                 if not self:up() then
+                    Logger.DEFAULT:debug("Couldn't move up, will try again next attempt.")
                     break
                 end
                 travel_y = travel_y - 1
@@ -173,6 +198,7 @@ Movement = (function()
             
             while travel_z < 0 do
                 if not self:back() then
+                    Logger.DEFAULT:debug("Couldn't move back, will try again next attempt.")
                     break
                 end
                 travel_z = travel_z + 1
@@ -180,6 +206,7 @@ Movement = (function()
             
             while travel_z > 0 do
                 if not self:forward() then
+                    Logger.DEFAULT:debug("Couldn't move forward, will try again next attempt.")
                     break
                 end
                 travel_z = travel_z - 1
@@ -196,6 +223,19 @@ Movement = (function()
             error(string.format("Failed to return to origin! left to travel: %dx, %dy, %dz", travel_x, travel_y, travel_z))
             return;
         end
+    end
+
+    function movement:drop_anchor()
+        local index=#self.anchors+1;
+        self.anchors[index] = self.pos_current:clone();
+        return index;
+    end
+
+    function movement:return_to_anchor(index, attempts)
+        local pos_anchor = self.anchors[index];
+        Logger.DEFAULT:debug("(Returning to Anchor) Current Pos: %s, anchor pos: %s", self.pos_current:tostring(), pos_anchor:tostring())
+        self:return_to(pos_anchor, attempts or 3);
+        self.anchors[index] = nil;
     end
 
     movement.Direction = Direction;
