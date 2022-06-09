@@ -158,12 +158,11 @@ Movement = (function()
 
         local attempts = tonumber(attempts) or 3;
 
-        self:rotate_to(Direction.FORWARD);
-
         while attempts > 0 do
 
             while travel_x < 0 do
-                if not self:left() then
+                self:rotate_to(Direction.LEFT);
+                if not self:forward() then
                     Logger.DEFAULT:debug("Couldn't move left, will try again next attempt.")
                     break
                 end
@@ -171,7 +170,8 @@ Movement = (function()
             end
             
             while travel_x > 0 do
-                if not self:right() then
+                self:rotate_to(Direction.RIGHT);
+                if not self:forward() then
                     Logger.DEFAULT:debug("Couldn't move right, will try again next attempt.")
                     break
                 end
@@ -179,6 +179,7 @@ Movement = (function()
             end
 
             while travel_y < 0 do
+                self:rotate_to(Direction.FORWARD);
                 if not self:down() then
                     Logger.DEFAULT:debug("Couldn't move down, will try again next attempt.")
                     break
@@ -187,6 +188,7 @@ Movement = (function()
             end
             
             while travel_y > 0 do
+                self:rotate_to(Direction.FORWARD);
                 if not self:up() then
                     Logger.DEFAULT:debug("Couldn't move up, will try again next attempt.")
                     break
@@ -195,6 +197,7 @@ Movement = (function()
             end
             
             while travel_z < 0 do
+                self:rotate_to(Direction.FORWARD);
                 if not self:back() then
                     Logger.DEFAULT:debug("Couldn't move back, will try again next attempt.")
                     break
@@ -203,6 +206,7 @@ Movement = (function()
             end
             
             while travel_z > 0 do
+                self:rotate_to(Direction.FORWARD);
                 if not self:forward() then
                     Logger.DEFAULT:debug("Couldn't move forward, will try again next attempt.")
                     break
@@ -216,6 +220,8 @@ Movement = (function()
                 attempts = attempts - 1
             end
         end
+
+        self:rotate_to(Direction.FORWARD);
 
         if not (travel_x == 0 and travel_y == 0 and travel_z == 0) then
             error(string.format("Failed to return to origin! left to travel: %dx, %dy, %dz", travel_x, travel_y, travel_z))
@@ -305,9 +311,9 @@ Movement = (function()
         return true;
     end
 
-    function movement:drop_anchor()
+    function movement:drop_anchor(static)
         local index=#self.anchors+1;
-        self.anchors[index] = {pos = self.pos_current:clone(), direction = Direction:from(self.direction:value())};
+        self.anchors[index] = {pos = self.pos_current:clone(), direction = Direction:from(self.direction:value()), static = static == true};
         return index;
     end
 
@@ -320,7 +326,9 @@ Movement = (function()
         Logger.DEFAULT:debug("(Returning to Anchor) Current Pos: %s, anchor pos: %s", self.pos_current:tostring(), anchor.pos:tostring())
         self:return_to(anchor.pos, attempts or 3);
         self:rotate_to(anchor.direction);
-        self:remove_anchor(index);
+        if not anchor.static then
+            self:remove_anchor(index);
+        end
     end
 
     movement.Direction = Direction;

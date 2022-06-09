@@ -7,6 +7,10 @@ Inventory = (function()
     local inventory = {
         data = {}
     }
+    local fuels = {
+        "minecraft:coal",
+        "immersiveengineering:coal_coke"
+    }
 
     function inventory:new()
         local obj = {
@@ -20,6 +24,7 @@ Inventory = (function()
     end
 
     function inventory:find(itemName, opts)
+        opts = opts or {}
         if opts.tryupdate == nil then
             opts.tryupdate = true;
         end
@@ -44,10 +49,6 @@ Inventory = (function()
     end
 
     function inventory:find_fuel()
-        local fuels = {
-            "minecraft:coal",
-            "immersiveengineering:coal_coke"
-        }
         self:update()
         for _, fuel in ipairs(fuels) do
             local found = self:find(fuel, {tryupdate = false});
@@ -69,6 +70,43 @@ Inventory = (function()
                 };     
             end
         end
+    end
+
+    function inventory:has_empty_slot()
+        self:update()
+        local bool = false;
+        for i = 1, 16 do
+            if turtle.getItemCount(i) == 0 then
+                bool = true
+                break
+            end
+        end
+        return bool;
+    end
+
+    function inventory:drop_items()
+        local function has_value (tab, val)
+            for index, value in ipairs(tab) do
+                if value == val then
+                    return true
+                end
+            end
+        
+            return false
+        end
+        self:update()
+        for i = 1, 16 do
+            local data = turtle.getItemDetail(i);
+            if data ~= nil then
+                if not has_value(fuels, data.name) and data.name ~= "minecraft:torch" and data.name ~= "minecraft:chest" then
+                    turtle.select(i);
+                    if not turtle.drop() then
+                        return false;
+                    end
+                end
+            end
+        end
+        return true;
     end
 
     return inventory;

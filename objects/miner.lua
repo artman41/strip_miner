@@ -4,6 +4,7 @@ require("objects.inventory")
 require("utils.enum")
 require("utils.opts")
 require("utils.logger")
+require("utils.input")
 
 Miner = (function()
 
@@ -82,8 +83,7 @@ Miner = (function()
             Logger.DEFAULT:info("Waiting for fuel...")
             local fuel_slot = self.inventory:find_fuel();
             while fuel_slot == nil do
-                Logger.DEFAULT:info("Press any key once fuel has been inserted...")
-                os.pullEvent("key")
+                Input.wait_for_key("Press any key once fuel has been inserted...")
 
                 fuel_slot = self.inventory:find_fuel();
             end
@@ -110,8 +110,7 @@ Miner = (function()
             Logger.DEFAULT:info("Mining Radius: %d", self.radius)
             Logger.DEFAULT:info("Refuel Threshold: %d%%", self.refuelThreshold * 100)
             Logger.DEFAULT:notice("The miner assumes that it is placed at the Center-Bottom of the wall.")
-            print("Press any key to continue...")
-            os.pullEvent("key")
+            Input.wait_for_key("Press any key to continue...")
         end
     end)();
 
@@ -119,6 +118,7 @@ Miner = (function()
     (function()
 
         function miner:mine_block(direction)
+            -- TODO: If inventory is full, return false
             miner:refuel_check()
             if direction == nil or direction == "f" then
                 if not turtle.detect() then
